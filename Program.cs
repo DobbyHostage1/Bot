@@ -12,41 +12,50 @@ using System.Security.Cryptography.X509Certificates;
 using System.Data.SQLite;
 using System.Collections.Specialized;
 using Microsoft.VisualBasic;
+using Microsoft.Office.Interop.Excel;
+
 
 
 namespace tg_bot
 {
     class Program
     {
+        
         static TelegramBotClient botClient = new TelegramBotClient("5826612141:AAGtP4Irsrgnj1YDMmsScLiLw0XVC0HaS38");
         public static SQLiteConnection DB;
+        public static string ExcelDate;
+  
 
-        static async void Main(string[] args)
+        static void Main(string[] args)
         {
-            using var cts = new CancellationTokenSource();
-            var me = await botClient.GetMeAsync();
-
+            Console.WriteLine($"Бот {botClient.GetMeAsync().Result.FirstName} запустився.");
+            var cts = new CancellationTokenSource();
+            var cancellationToken = cts.Token;
             var receiverOptions = new ReceiverOptions
             {
-                AllowedUpdates = new UpdateType[]
-                {
-                    UpdateType.Message,
-                    UpdateType.EditedMessage,
-                }
+                AllowedUpdates = { }, // дозволено получати всі види апдейтів
             };
-            Console.WriteLine($"works @{me.Username}");
+            botClient.StartReceiving(
+                UpdateHandler,
+                 HandleErrorAsync,
+                 receiverOptions,
+                 cancellationToken
+            );
             Console.ReadLine();
-            cts.Cancel();
-            botClient.StartReceiving(UpdateHandler, ErrorHandler, receiverOptions, cancellationToken: cts.Token);
         }
+      
+      
 
-        private static Task ErrorHandler(ITelegramBotClient arg1, Exception arg2, CancellationToken arg3)
+
+        public static async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            // Данный Хендлер получает ошибки и выводит их в консоль в виде JSON
+            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(exception));
         }
 
         private static async Task UpdateHandler(ITelegramBotClient botClient, Update update, CancellationToken arg3)
         {
+            var message = update.Message;
             if (update.Type == UpdateType.Message && update?.Message?.Text != null)
             {
                 if (update.Message.Type == MessageType.Text)
@@ -59,65 +68,37 @@ namespace tg_bot
 
                     Console.WriteLine($"{username} | {id} | {text} | {data}");
 
-                  
-                }
-            }
-        }
+                    if (message.Text == "/start")
+                    {
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "Щоб глянути розклад тицьни /keyboard");
+                        Registration(message.Chat.Id.ToString(), message.Chat.Username.ToString(), DateTime.Now.ToString());
 
-        public static void Reg(int id, int username, string date)
-        {
-            try
-            {
-                DB = new SQLiteConnection("Data Source = DB.db");
-                DB.Open();
-                SQLiteCommand regcmd = DB.CreateCommand();
-                regcmd.CommandText = "INSERT INTO users VALUES(@id, @username, @date)";
-                regcmd.Parameters.AddWithValue("@id", id);
-                regcmd.Parameters.AddWithValue("@username", username);
-                regcmd.Parameters.AddWithValue("@date", date);
-                DB.Close();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error: " + ex);
-            }
+                    }
 
-        }
-
-
-   
-        async Task HandleMessage(ITelegramBotClient botClient, Message message)
-        {
-            if (message.Text == "/start")
-            {
-                await botClient.SendTextMessageAsync(message.Chat.Id, "Щоб глянути розклад тицьни /keyboard");
-
-            }
-
-            if (message.Text == "/keyboard")
-            {
-                ReplyKeyboardMarkup keyboard = new(new[]
-                {
+                    if (message.Text == "/keyboard")
+                    {
+                        ReplyKeyboardMarkup keyboard = new(new[]
+                        {
             new KeyboardButton[] {"Інженерія ПЗ", "Автоматизація"},
             new KeyboardButton[] {"Менеджмент", "Маркетинг"},
             new KeyboardButton[] {"Фінанси", "Облік і оподаткування"},
              new KeyboardButton[] {"Технології ЛП", "Машинобудування"},
               new KeyboardButton[] {"Деревообробні та МТ", "Розклад дзвінків"}
-        })
+                         })
 
-                {
-                    ResizeKeyboard = true
-                };
+                        {
+                            ResizeKeyboard = true
+                        };
 
-                await botClient.SendTextMessageAsync(message.Chat.Id, "Спеціальність?", replyMarkup: keyboard);
-                return;
-            }
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "Спеціальність?", replyMarkup: keyboard);
+                        return;
+                    }
 
 
-            if (message.Text == "Інженерія ПЗ")
-            {
-                InlineKeyboardMarkup keyboard = new(new[]
-                {
+                    if (message.Text == "Інженерія ПЗ")
+                    {
+                        InlineKeyboardMarkup keyboard = new(new[]
+                        {
             new[]
             {
                InlineKeyboardButton.WithCallbackData("П-11"),
@@ -128,15 +109,15 @@ namespace tg_bot
                   InlineKeyboardButton.WithCallbackData("П-42")
             }
         }
-                );
-                await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
-                return;
-            }
+                        );
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
+                        return;
+                    }
 
-            if (message.Text == "Автоматизація")
-            {
-                InlineKeyboardMarkup keyboard = new(new[]
-                {
+                    if (message.Text == "Автоматизація")
+                    {
+                        InlineKeyboardMarkup keyboard = new(new[]
+                        {
             new[]
             {
                InlineKeyboardButton.WithCallbackData("А-11"),
@@ -146,15 +127,15 @@ namespace tg_bot
 
             }
         }
-                );
-                await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
-                return;
-            }
+                        );
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
+                        return;
+                    }
 
-            if (message.Text == "Менеджмент")
-            {
-                InlineKeyboardMarkup keyboard = new(new[]
-                {
+                    if (message.Text == "Менеджмент")
+                    {
+                        InlineKeyboardMarkup keyboard = new(new[]
+                        {
             new[]
             {
                 InlineKeyboardButton.WithCallbackData("Мд-11"),
@@ -163,16 +144,16 @@ namespace tg_bot
 
             }
         }
-                );
-                await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
-                return;
-            }
+                        );
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
+                        return;
+                    }
 
 
-            if (message.Text == "Маркетинг")
-            {
-                InlineKeyboardMarkup keyboard = new(new[]
-                {
+                    if (message.Text == "Маркетинг")
+                    {
+                        InlineKeyboardMarkup keyboard = new(new[]
+                        {
             new[]
             {
                  InlineKeyboardButton.WithCallbackData("Е-11"),
@@ -182,16 +163,16 @@ namespace tg_bot
 
             }
         }
-                );
-                await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
-                return;
-            }
+                        );
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
+                        return;
+                    }
 
 
-            if (message.Text == "Фінанси")
-            {
-                InlineKeyboardMarkup keyboard = new(new[]
-                {
+                    if (message.Text == "Фінанси")
+                    {
+                        InlineKeyboardMarkup keyboard = new(new[]
+                        {
             new[]
             {
                InlineKeyboardButton.WithCallbackData("Ф-11"),
@@ -200,16 +181,16 @@ namespace tg_bot
 
             }
         }
-                );
-                await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
-                return;
-            }
+                        );
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
+                        return;
+                    }
 
 
-            if (message.Text == "Облік і оподаткування")
-            {
-                InlineKeyboardMarkup keyboard = new(new[]
-                {
+                    if (message.Text == "Облік і оподаткування")
+                    {
+                        InlineKeyboardMarkup keyboard = new(new[]
+                        {
             new[]
             {
                 InlineKeyboardButton.WithCallbackData("Б-11"),
@@ -218,16 +199,16 @@ namespace tg_bot
 
             }
         }
-                );
-                await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
-                return;
-            }
+                        );
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
+                        return;
+                    }
 
 
-            if (message.Text == "Технології ЛП")
-            {
-                InlineKeyboardMarkup keyboard = new(new[]
-                {
+                    if (message.Text == "Технології ЛП")
+                    {
+                        InlineKeyboardMarkup keyboard = new(new[]
+                        {
             new[]
             {
                 InlineKeyboardButton.WithCallbackData("Мк-11"),
@@ -237,15 +218,15 @@ namespace tg_bot
 
             }
         }
-                );
-                await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
-                return;
-            }
+                        );
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
+                        return;
+                    }
 
-            if (message.Text == "Машинобудування")
-            {
-                InlineKeyboardMarkup keyboard = new(new[]
-                {
+                    if (message.Text == "Машинобудування")
+                    {
+                        InlineKeyboardMarkup keyboard = new(new[]
+                        {
             new[]
             {
                   InlineKeyboardButton.WithCallbackData("М-11"),
@@ -255,16 +236,16 @@ namespace tg_bot
 
             }
         }
-                );
+                        );
 
-                await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
-                return;
-            }
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
+                        return;
+                    }
 
-            if (message.Text == "Деревообробні та МТ")
-            {
-                InlineKeyboardMarkup keyboard = new(new[]
-                {
+                    if (message.Text == "Деревообробні та МТ")
+                    {
+                        InlineKeyboardMarkup keyboard = new(new[]
+                        {
             new[]
             {
                  InlineKeyboardButton.WithCallbackData("Т-11"),
@@ -273,16 +254,16 @@ namespace tg_bot
 
             }
         }
-                );
+                        );
 
-                await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
-                return;
-            }
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
+                        return;
+                    }
 
-            if (message.Text == "Розклад дзвінків")
-            {
-                InlineKeyboardMarkup keyboard = new(new[]
-                {
+                    if (message.Text == "Розклад дзвінків")
+                    {
+                        InlineKeyboardMarkup keyboard = new(new[]
+                        {
             new[]
             {
                  InlineKeyboardButton.WithCallbackData("Звичайний"),
@@ -290,23 +271,51 @@ namespace tg_bot
 
             }
         }
-                );
+                        );
 
-                await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
-                return;
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
+                        return;
+                    }
+                }
+            }
+        }
+
+        public static void Registration(string id, string username, string date)
+        {
+            try
+            {
+                DB = new SQLiteConnection("Data Source = DB.db");
+                DB.Open();
+                SQLiteCommand regcmd = DB.CreateCommand();
+                regcmd.CommandText = "INSERT INTO users VALUES(@id, @username, @date)";
+                regcmd.Parameters.AddWithValue("@id", id);
+                regcmd.Parameters.AddWithValue("@username", username);
+                regcmd.Parameters.AddWithValue("@date", date);
+                regcmd.ExecuteNonQuery();
+                DB.Close();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex);
             }
 
-
-
         }
 
-        async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callbackQuery)
+        public static void ReadExcel()
         {
+            string filePath = @"C:\Users\Admin\OneDrive\Робочий стіл\Firsttt\rozklad.xlsx";
+            Microsoft.Office.Interop.Excel.Application excel = new Microsoft.Office.Interop.Excel.Application();
+            Workbook WB = excel.Workbooks.Open(filePath);
+            Worksheet wks = (Worksheet)WB.Worksheets[1];
 
+            /* string CellValue = (wks.Cells[2, 1]).Value;
+             ExcelDate = CellValue.ToString();*/
+            Console.WriteLine((wks.Cells[2, 1]).Value);
         }
+
+
 
         
-
 
 
 

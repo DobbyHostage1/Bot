@@ -41,11 +41,9 @@ namespace tg_bot
                  receiverOptions,
                  cancellationToken
             );
-            Console.ReadLine();
+           
         }
       
-      
-
 
         public static async Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
         {
@@ -74,7 +72,10 @@ namespace tg_bot
                         Registration(message.Chat.Id.ToString(), message.Chat.Username.ToString(), DateTime.Now.ToString());
 
                     }
-
+                    if (message.Text == "/excel")
+                    {
+                        ReadExcel();
+                    }
                     if (message.Text == "/keyboard")
                     {
                         ReplyKeyboardMarkup keyboard = new(new[]
@@ -272,8 +273,8 @@ namespace tg_bot
             }
         }
                         );
-
-                        await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
+                        
+                            await botClient.SendTextMessageAsync(message.Chat.Id, "Група?", replyMarkup: keyboard);
                         return;
                     }
                 }
@@ -304,20 +305,13 @@ namespace tg_bot
         public static void ReadExcel()
         {
             string filePath = @"C:\Users\Admin\OneDrive\Робочий стіл\Firsttt\rozklad.xlsx";
+
             Microsoft.Office.Interop.Excel.Application excel = new Microsoft.Office.Interop.Excel.Application();
             Workbook WB = excel.Workbooks.Open(filePath);
             Worksheet wks = (Worksheet)WB.Worksheets[1];
 
-            /* string CellValue = (wks.Cells[2, 1]).Value;
-             ExcelDate = CellValue.ToString();*/
-            Console.WriteLine((wks.Cells[2, 1]).Value);
+            Console.WriteLine((wks.Cells[2, 3]).Value);
         }
-
-
-
-        
-
-
 
     }
 }
